@@ -291,6 +291,9 @@ typedef struct device_control_block DCB;	/**< @brief Forward declaration */
 typedef struct file_control_block FCB;		/**< @brief Forward declaration */
 typedef struct process_thread_control_block PTCB; /**< @brief Forward declaration */
 
+void reparenting(PCB *curproc);
+void cleanup(PCB *curproc);
+
 /** @brief A convenience typedef */
 typedef struct resource_list_node * rlnode_ptr;
 
