@@ -107,11 +107,13 @@ void sys_ThreadExit(int exitval)
   kernel_broadcast(&ptcb->exit_cv);
   CURPROC->thread_count--;
 
-  //if(ptcb->detached || ptcb->refcount == 0) {
-  if(ptcb->detached) {
-    //fprintf(stderr, "threadExit free\n");
+  /* not recommended implementation for ptcb releasing
+     new version in cleanup() */
+
+ /* if(ptcb->detached) { // 
+    fprintf(stderr, "threadExit free\n");
     release_PTCB(ptcb);
-  }
+  } */
 
   if(CURPROC->thread_count == 0) {
 
@@ -180,4 +182,15 @@ void cleanup(PCB *curproc)
 
   /* Now, mark the process as exited. */
   curproc->pstate = ZOMBIE;
+
+  // release the PTCBs of the process 
+  rlnode* list = &curproc -> ptcb_list;
+
+  while(!is_rlist_empty(list)) {
+    rlnode* node = rlist_pop_front(list);
+    PTCB* ptcb = node->ptcb;
+    release_PTCB(ptcb);
+    //fprintf(stderr, "threadExit free\n");
+  }
+  
 }
