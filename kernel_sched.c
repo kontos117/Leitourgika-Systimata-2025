@@ -632,12 +632,6 @@ void no_more_starvation()
 				sched_queue_add(sel->tcb);
 		}
 	}
-
-	/*
-	TCB* current = CURTHREAD;
-	if(current->priority < PRIORITY_QUEUES - 1) 
-		current->priority++; */
-		
 }
 
 void priority_shift(enum SCHED_CAUSE cause, TCB* current)
