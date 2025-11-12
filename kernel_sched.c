@@ -171,6 +171,9 @@ TCB* spawn_thread(PCB* pcb, void (*func)())
 	tcb->last_cause = SCHED_IDLE;
 	tcb->curr_cause = SCHED_IDLE;
 
+	tcb->priority = PRIORITY_QUEUES/2; /* or
+	tcb->priority = PRIORITY_QUEUES - 1; */
+	
 	/* Compute the stack segment address and size */
 	void* sp = ((void*)tcb) + THREAD_TCB_SIZE;
 
@@ -253,12 +256,15 @@ void initialise_PTCB(PTCB* ptcb, Task task, int argl, void* args) {
   Both of these structures are protected by @c sched_spinlock.
 */
 
-rlnode SCHED; /* The scheduler queue */
+rlnode SCHED[PRIORITY_QUEUES]; /* The scheduler table of queues */
 rlnode TIMEOUT_LIST; /* The list of threads with a timeout */
 Mutex sched_spinlock = MUTEX_INIT; /* spinlock for scheduler queue */
 
 /* Interrupt handler for ALARM */
 void yield_handler() { yield(SCHED_QUANTUM); }
+
+/* Count how many times yield is called */
+int yield_counter = 0;
 
 /* Interrupt handle for inter-core interrupts */
 void ici_handler()
@@ -296,7 +302,7 @@ static void sched_register_timeout(TCB* tcb, TimerDuration timeout)
 static void sched_queue_add(TCB* tcb)
 {
 	/* Insert at the end of the scheduling list */
-	rlist_push_back(&SCHED, &tcb->sched_node);
+	rlist_push_back(&SCHED[tcb->priority], &tcb->sched_node);
 
 	/* Restart possibly halted cores */
 	cpu_core_restart_one();
@@ -353,11 +359,20 @@ static void sched_wakeup_expired_timeouts()
   *** MUST BE CALLED WITH sched_spinlock HELD ***
 */
 static TCB* sched_queue_select(TCB* current)
-{
+{	
+	TCB* next_thread = NULL;
 	/* Get the head of the SCHED list */
-	rlnode* sel = rlist_pop_front(&SCHED);
+	for(int i = PRIORITY_QUEUES-1; i>=0; i--) {
 
-	TCB* next_thread = sel->tcb; /* When the list is empty, this is NULL */
+		rlnode* sel = rlist_pop_front(&SCHED[i]);
+		next_thread = sel->tcb; /* When the list is empty, this is NULL */
+
+		if(next_thread != NULL) {
+			next_thread->its = QUANTUM;
+			return next_thread;
+		}
+
+	}
 
 	if (next_thread == NULL)
 		next_thread = (current->state == READY) ? current : &CURCORE.idle_thread;
@@ -443,6 +458,9 @@ void yield(enum SCHED_CAUSE cause)
 
 	Mutex_Lock(&sched_spinlock);
 
+	/* Increase yield counter */
+	yield_counter++;
+
 	/* Update CURTHREAD state */
 	if (current->state == RUNNING)
 		current->state = READY;
@@ -451,6 +469,15 @@ void yield(enum SCHED_CAUSE cause)
 	current->rts = remaining;
 	current->last_cause = current->curr_cause;
 	current->curr_cause = cause;
+
+	/* Check if it's time to boost priority */
+	if(yield_counter > BOOST_PRIORITY) {
+		//fprintf(stderr, "%d\n", current->priority);
+		no_more_starvation();
+		//fprintf(stderr, "%d\n", current->priority);
+		yield_counter = 0;
+	}
+	priority_shift(cause, current);
 
 	/* Wake up threads whose sleep timeout has expired */
 	sched_wakeup_expired_timeouts();
@@ -549,8 +576,12 @@ static void idle_thread()
  */
 void initialize_scheduler()
 {
-	rlnode_init(&SCHED, NULL);
-	rlnode_init(&TIMEOUT_LIST, NULL);
+
+	for(int i = 0; i < PRIORITY_QUEUES; i++) {
+		rlnode_init(&SCHED[i], NULL);
+		rlnode_init(&TIMEOUT_LIST, NULL);
+	}
+
 }
 
 void run_scheduler()
@@ -588,3 +619,51 @@ void run_scheduler()
 	cpu_interrupt_handler(ALARM, NULL);
 	cpu_interrupt_handler(ICI, NULL);
 }
+
+void no_more_starvation()
+{
+	//fprintf(stderr, "boosting\n");
+	for(int i = PRIORITY_QUEUES - 2; i>=0; i--) {
+		while(!is_rlist_empty(&SCHED[i])) {
+				rlnode* sel = rlist_pop_front(&SCHED[i]);
+				sel->tcb->priority++;	
+				sched_queue_add(sel->tcb);
+		}
+	}
+
+	/*
+	TCB* current = CURTHREAD;
+	if(current->priority < PRIORITY_QUEUES - 1) 
+		current->priority++; */
+		
+}
+
+void priority_shift(enum SCHED_CAUSE cause, TCB* current)
+{
+	switch(cause) {
+
+		case SCHED_QUANTUM:
+			if(!(current->priority < 1))
+				current->priority--;
+			break;
+		
+		case SCHED_IO:
+			if(current->priority != PRIORITY_QUEUES - 1)
+				if(!(current->priority > 37))
+					current->priority++;
+			break;
+
+		case SCHED_MUTEX:
+			if((current->curr_cause == SCHED_MUTEX) && 
+				(current->last_cause == SCHED_MUTEX))
+					if((!current->priority == 0))
+						current->priority--;
+			break;
+
+		default:
+			// do nothing
+			break;
+
+	}
+}
+

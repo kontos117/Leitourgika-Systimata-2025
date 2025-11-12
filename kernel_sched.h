@@ -119,6 +119,8 @@ typedef struct thread_control_block {
 	enum SCHED_CAUSE curr_cause; /**< @brief The endcause for the current time-slice */
 	enum SCHED_CAUSE last_cause; /**< @brief The endcause for the last time-slice */
 
+  int priority;
+
 #ifndef NVALGRIND
 	unsigned valgrind_stack_id; /**< @brief Valgrind helper for stacks. 
 
@@ -301,6 +303,13 @@ void initialize_scheduler(void);
   This is the default quantum for each thread, in microseconds.
   */
 #define QUANTUM (10000L)
+#define PRIORITY_QUEUES 39
+#define BOOST_PRIORITY 1170
+
+/* As the name suggests */
+void no_more_starvation();
+
+void priority_shift(enum SCHED_CAUSE cause, TCB* current_tcb);
 
 /** @} */
 

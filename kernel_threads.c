@@ -107,8 +107,8 @@ void sys_ThreadExit(int exitval)
   kernel_broadcast(&ptcb->exit_cv);
   CURPROC->thread_count--;
 
-  /* not recommended implementation for ptcb releasing
-     new version in cleanup() */
+  /* not recommended implementation for ptcb releasing */
+  /* new version in cleanup() */
 
  /* if(ptcb->detached) { // 
     fprintf(stderr, "threadExit free\n");
