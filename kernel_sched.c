@@ -577,10 +577,12 @@ static void idle_thread()
 void initialize_scheduler()
 {
 
-	for(int i = 0; i < PRIORITY_QUEUES; i++) {
+	for(int i = 0; i < PRIORITY_QUEUES; i++)
 		rlnode_init(&SCHED[i], NULL);
-		rlnode_init(&TIMEOUT_LIST, NULL);
-	}
+	
+	/* Initialize timeout list separately */
+	rlnode_init(&TIMEOUT_LIST, NULL);
+	
 
 }
 
