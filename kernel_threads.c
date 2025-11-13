@@ -13,12 +13,12 @@ Tid_t sys_CreateThread(Task task, int argl, void* args)
   PTCB* ptcb = acquire_PTCB();
   initialise_PTCB(ptcb, task, argl, args);
 
-  CURPROC -> thread_count++;
-
   if(task != NULL) {
     TCB* tcb = spawn_thread(CURPROC, start_other_thread);
     ptcb->tcb = tcb;
     tcb->ptcb = ptcb;
+
+    CURPROC -> thread_count++;
 
     rlist_push_back(&CURPROC->ptcb_list,&ptcb->ptcb_list_node);
 
@@ -107,13 +107,6 @@ void sys_ThreadExit(int exitval)
   kernel_broadcast(&ptcb->exit_cv);
   CURPROC->thread_count--;
 
-  /* not recommended implementation for ptcb releasing */
-  /* new version in cleanup() */
-
- /* if(ptcb->detached) { // 
-    fprintf(stderr, "threadExit free\n");
-    release_PTCB(ptcb);
-  } */
 
   if(CURPROC->thread_count == 0) {
 

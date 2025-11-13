@@ -192,7 +192,6 @@ Pid_t sys_Exec(Task call, int argl, void* args)
     the initialization of the PCB.
    */
   if(call != NULL) {
-    //newproc->main_thread = spawn_thread(newproc, start_main_thread);
     TCB* tcb = spawn_thread(newproc, start_main_thread);
     newproc->main_thread = tcb;
 

@@ -223,15 +223,12 @@ void release_PTCB(PTCB* ptcb) {
 void initialise_PTCB(PTCB* ptcb, Task task, int argl, void* args) {
   ptcb->task = task;
   ptcb->argl = argl;
+  ptcb->args = args;
   ptcb->exited = 0;
   ptcb->detached = 0;
   ptcb->exit_cv = COND_INIT;
   ptcb->refcount = 0;
-  if(args != NULL) {
-    ptcb->args = args;
-  } else {
-    ptcb->args = NULL;
-  }  
+  
   
   rlnode_init(&ptcb->ptcb_list_node, ptcb);
 }
@@ -580,7 +577,6 @@ void initialize_scheduler()
 	for(int i = 0; i < PRIORITY_QUEUES; i++)
 		rlnode_init(&SCHED[i], NULL);
 	
-	/* Initialize timeout list separately */
 	rlnode_init(&TIMEOUT_LIST, NULL);
 	
 
