@@ -469,9 +469,7 @@ void yield(enum SCHED_CAUSE cause)
 
 	/* Check if it's time to boost priority */
 	if(yield_counter > BOOST_PRIORITY) {
-		//fprintf(stderr, "%d\n", current->priority);
 		no_more_starvation();
-		//fprintf(stderr, "%d\n", current->priority);
 		yield_counter = 0;
 	}
 	priority_shift(cause, current);
@@ -620,7 +618,7 @@ void run_scheduler()
 
 void no_more_starvation()
 {
-	//fprintf(stderr, "boosting\n");
+	fprintf(stderr, "boosting\n");
 	for(int i = PRIORITY_QUEUES - 2; i>=0; i--) {
 		while(!is_rlist_empty(&SCHED[i])) {
 				rlnode* sel = rlist_pop_front(&SCHED[i]);
@@ -632,6 +630,7 @@ void no_more_starvation()
 
 void priority_shift(enum SCHED_CAUSE cause, TCB* current)
 {
+	
 	switch(cause) {
 
 		case SCHED_QUANTUM:
@@ -648,7 +647,7 @@ void priority_shift(enum SCHED_CAUSE cause, TCB* current)
 		case SCHED_MUTEX:
 			if((current->curr_cause == SCHED_MUTEX) && 
 				(current->last_cause == SCHED_MUTEX))
-					if((!current->priority == 0))
+					if(!(current->priority < 1))
 						current->priority--;
 			break;
 
@@ -657,5 +656,7 @@ void priority_shift(enum SCHED_CAUSE cause, TCB* current)
 			break;
 
 	}
+
+	//fprintf(stderr, "%d", current->priority);
 }
 
