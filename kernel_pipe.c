@@ -146,7 +146,7 @@ void initialize_Pipe(FCB** fcb)
 
 }
 
-int available_space(pipe_cb* pipe, int func) 
+int available_space(pipe_cb* pipe, int func) // func = 1 for write, 0 for read
 {
 	if(func) return (pipe->w_position + 1) % PIPE_BUFFER_SIZE - pipe->r_position;
 	else return pipe->w_position - pipe->r_position;
