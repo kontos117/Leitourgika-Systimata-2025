@@ -618,7 +618,7 @@ void run_scheduler()
 
 void no_more_starvation()
 {
-	fprintf(stderr, "boosting\n");
+	//fprintf(stderr, "boosting\n");
 	for(int i = PRIORITY_QUEUES - 2; i>=0; i--) {
 		while(!is_rlist_empty(&SCHED[i])) {
 				rlnode* sel = rlist_pop_front(&SCHED[i]);
