@@ -290,7 +290,6 @@ typedef struct core_control_block CCB;		/**< @brief Forward declaration */
 typedef struct device_control_block DCB;	/**< @brief Forward declaration */
 typedef struct file_control_block FCB;		/**< @brief Forward declaration */
 typedef struct process_thread_control_block PTCB;
-typedef struct socket_control_block socket_cb;
 typedef struct connection_request connection_request;
 
 void reparenting(PCB *curproc);
@@ -322,7 +321,6 @@ typedef struct resource_list_node {
     DCB* dcb;
     FCB* fcb;
     void* obj;
-	socket_cb* socket_cb;
     connection_request* connection_request;
     rlnode_ptr node;
     intptr_t num;
