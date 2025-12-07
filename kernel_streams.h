@@ -144,7 +144,7 @@ int pipe_read(void* pipecb_t, char *buf, unsigned int n);
 int pipe_writer_close(void* _pipecb);
 int pipe_reader_close(void* _pipecb);
 
-void initialize_Pipe(FCB** fcb);
+void initialise_Pipe(FCB** fcb);
 int available_space(pipe_cb* pipe, int func);
 
 /** @} */

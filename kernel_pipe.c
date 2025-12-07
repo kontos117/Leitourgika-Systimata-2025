@@ -14,7 +14,7 @@ int sys_Pipe(pipe_t* pipe)
 	// Fails to reserve FCB
 	if(!FCB_reserve(2, fid, fcb)) return -1; 
 
-	initialize_Pipe(fcb);
+	initialise_Pipe(fcb);
 	
 	pipe->read = fid[0];
 	pipe->write = fid[1];
@@ -125,7 +125,7 @@ file_ops writer_file_ops = {
     .Close = pipe_writer_close
 };
 
-void initialize_Pipe(FCB** fcb) 
+void initialise_Pipe(FCB** fcb) 
 {
 	pipe_cb* pipe = (pipe_cb*)xmalloc(sizeof(pipe_cb)); 
 	
