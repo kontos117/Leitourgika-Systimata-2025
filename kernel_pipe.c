@@ -32,8 +32,8 @@ int pipe_write(void* pipecb_t, const char *buf, unsigned int n)
 		return -1;
 
 	/*  
-		Loop while buffer is full and if the reader is open.
-		The buffer is full when no position is available. The positions available are given by 
+		While buffer is full and if the reader is open.
+		Buffer is full when no position is available. The available positions are given by 
 		the equation available = w_position - r_position and because we have a circular buffer
 		we need to do the modulo of PIPE_BUFFER_SIZE
 	*/
@@ -111,14 +111,14 @@ int pipe_reader_close(void* _pipecb)
 	return 0;
 }
 
-static file_ops reader_file_ops = {
+file_ops reader_file_ops = {
     .Open = NULL,
     .Read = pipe_read,
     .Write = NULL,
     .Close = pipe_reader_close
 };
 
-static file_ops writer_file_ops = {
+file_ops writer_file_ops = {
     .Open = NULL,
     .Read = NULL,
     .Write = pipe_write,
