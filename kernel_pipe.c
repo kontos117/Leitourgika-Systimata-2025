@@ -70,7 +70,7 @@ int pipe_read(void* pipecb_t, char *buf, unsigned int n)
 	if(!pipe->reader || !pipe) return -1;
 
 	// while buffer is empty and the writter open, wait
-	while(available_space(pipe, 0) == 0 && pipe->writer && pipe->writer) {
+	while(available_space(pipe, 0) == 0 && pipe->writer) {
 		kernel_wait(&pipe->has_data, SCHED_PIPE);
 	}
 	
