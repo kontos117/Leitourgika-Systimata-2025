@@ -150,12 +150,12 @@ void initialise_Pipe(FCB** fcb)
 
 int available_space(pipe_cb* pipe, int func) // func = 1 for write (space), 0 for read (data)
 {
-    if (func == 0) 
-        // READ: returns the amount of data available to read
-        return pipe->size;
-    else 
+    if(func) 
         // WRITE: returns the available space (total size minus data)
         return PIPE_BUFFER_SIZE - pipe->size;
+    else 
+		// READ: returns the amount of data available to read
+        return pipe->size;
     
 }
 
