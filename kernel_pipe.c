@@ -135,6 +135,7 @@ void initialise_Pipe(FCB** fcb)
 
 	pipe->w_position = 0;
 	pipe->r_position = 0;
+	pipe->size = 0;
 
 	pipe->has_space = COND_INIT; 
 	pipe->has_data = COND_INIT;
