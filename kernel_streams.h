@@ -136,6 +136,7 @@ typedef struct pipe_control_block {
 	int w_position, r_position;  /* write, read position in buffer 
 	(it depends on your implementation of bounded buffer, i.e. alternatively pointers can be used) */
 	char BUFFER[PIPE_BUFFER_SIZE];   /* bounded (cyclic) byte buffer */
+	int size; // current size of the buffer
 } pipe_cb;
 
 int sys_Pipe(pipe_t* pipe);

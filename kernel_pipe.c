@@ -52,7 +52,8 @@ int pipe_write(void* pipecb_t, const char *buf, unsigned int n)
 		pipe->BUFFER[pipe->w_position] = buf[written_from_buf];
 		// Increase indices
 		written_from_buf++;
-		pipe->w_position++;  
+		pipe->w_position++; 
+		pipe->size++;
 		
 		// Check if the writing reached buffer's end and set it 0 to start again
 		if(pipe->w_position >= PIPE_BUFFER_SIZE) pipe->w_position = 0;
@@ -82,6 +83,7 @@ int pipe_read(void* pipecb_t, char *buf, unsigned int n)
 		//Increase indices
 		read_from_buf++;
 		pipe->r_position++;
+		pipe->size--;
 		// Check if reading reached buffer's size and set it 0 to start again
 		if(pipe->r_position >= PIPE_BUFFER_SIZE) pipe->r_position = 0;
 	}
@@ -146,9 +148,14 @@ void initialise_Pipe(FCB** fcb)
 
 }
 
-int available_space(pipe_cb* pipe, int func) // func = 1 for write, 0 for read
+int available_space(pipe_cb* pipe, int func) // func = 1 for write (space), 0 for read (data)
 {
-	if(func) return (pipe->w_position + 1) % PIPE_BUFFER_SIZE - pipe->r_position;
-	else return pipe->w_position - pipe->r_position;
+    if (func == 0) {
+        // READ: returns the amount of data available to read
+        return pipe->size;
+    } else {
+        // WRITE: returns the available space (total size minus data)
+        return PIPE_BUFFER_SIZE - pipe->size;
+    }
 }
 
