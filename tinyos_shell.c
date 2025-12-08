@@ -7,6 +7,7 @@
 #include <assert.h>
 #include <ctype.h>
 #include <stdarg.h>
+#include <unistd.h>
 
 #include "tinyoslib.h"
 #include "symposium.h"
@@ -186,6 +187,7 @@ int SystemInfo(size_t argc, const char** argv)
 				pname = argv[0];
 			} else if(argc==-1) {
 				/* Try to give some known names */
+				if(info.pid==0) pname = "sched";
 				if(info.pid==1) pname = "init";
 			}
 

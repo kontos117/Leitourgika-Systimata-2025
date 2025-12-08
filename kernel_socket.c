@@ -12,7 +12,7 @@ Fid_t sys_Socket(port_t port)
 
 	if(FCB_reserve(1,&fid,&fcb)==0) return NOFILE;
 
-	// Initialize socket
+	// Initialise socket
 	initialise_Socket(port, fcb);
 
 	return fid;	
@@ -35,7 +35,8 @@ int sys_Listen(Fid_t sock)
     
     // Set the PORT_MAP
     PORT_MAP[socket->port] = socket;
-    // Mark socket as a listener and initializing the fields of the union
+    // Mark socket as a listener 
+	// initialise the fields of the union
 	socket->type = SOCKET_LISTENER;
 	rlnode_init(&socket->listener_s.queue, NULL);
 	socket->listener_s.req_available = COND_INIT;
@@ -47,18 +48,18 @@ int sys_Listen(Fid_t sock)
 Fid_t sys_Accept(Fid_t lsock)
 {
 	FCB* fcb = get_fcb(lsock);
-    // 1. Check if fcb is legal
+    // check if fcb is legal
     if(!fcb) return NOFILE;
 
     socket_cb* socket = (socket_cb*) fcb->streamobj;
 
-    // 2. Check if it's a socket and a listener
+    // check if it's a socket and a listener
     if(!socket || socket->type != SOCKET_LISTENER) return NOFILE;
 
-    // 3. Increase refcount (to protect from Close while waiting)
+    // increase refcount (to protect from Close while waiting)
     socket->refcount++;
 
-    // 4. Loop while waiting for a request
+    // while waiting for a request
     while(is_rlist_empty(&socket->listener_s.queue)) {
         // 5. Check if the port is still valid (listening socket closed)
         if(!PORT_MAP[socket->port] || socket->refcount == 0) return NOFILE; 
@@ -68,33 +69,32 @@ Fid_t sys_Accept(Fid_t lsock)
     }
 	
 
-    // 6. Check if the port is still valid (after waking up)
+    // check if the port is still valid (after waking up)
     if(!PORT_MAP[socket->port]) return NOFILE;
     
 
-    // 7. Take the first connection request
+    // take the first connection request
     rlnode* node = rlist_pop_front(&socket->listener_s.queue);
     connection_request* req = (connection_request*) node-> connection_request;
 
     req->admitted = 1;
 
-    // 8. The client's socket (peer1)
+    // client's socket (peer1)
     socket_cb* peer1 = req->peer;
     if(!peer1 || peer1->type != SOCKET_UNBOUND) return NOFILE; 
     
 
-    // 9. Try to construct peer (the server's new socket)
+    // try to construct peer (the server's new socket)
 
-   // Initializing peer1 and returning it's fid
 	Fid_t peer1_fid = sys_Socket(peer1->port);
-	// Getting it's fcb from the fid and check it
+
 	FCB* peer2_fcb = get_fcb(peer1_fid);
 	if(peer1_fid==NOFILE) return NOFILE;
 
     socket_cb* peer2 = (socket_cb*) peer2_fcb->streamobj;
 	if(!peer2) return NOFILE;
 
-    // 10. Connect the 2 peers / initialize the connection
+    // connect the 2 peers / initialise the connection
 
     // Create the two pipe control blocks
     pipe_cb* pipe_A_to_B = (pipe_cb*)xmalloc(sizeof(pipe_cb)); // peer1 writes, peer2 reads
@@ -106,7 +106,7 @@ Fid_t sys_Accept(Fid_t lsock)
 	setup_peer_connection(peer1, peer2, pipe_B_to_A, pipe_A_to_B);
     setup_peer_connection(peer2, peer1, pipe_A_to_B, pipe_B_to_A);
 
-    // 11. Signal the Connect side
+    // signal the Connect side
     kernel_signal(&req->connected_cv);
 	socket->refcount--;
 
@@ -122,51 +122,50 @@ int sys_Connect(Fid_t sock, port_t port, timeout_t timeout)
     
     socket_cb *socket = (socket_cb *)fcb->streamobj;
     
-    // 1. Do all the checks needed
+    // do all the checks needed
     if(!socket || socket->type != SOCKET_UNBOUND) return NOFILE;
     if(port < 0 || port > MAX_PORT) return NOFILE;
 
     socket_cb *listener = PORT_MAP[port];
-    // Port does not have a listening socket
+    // port does not have a listening socket
     if(!listener || listener->type != SOCKET_LISTENER) return NOFILE;
 
-    // 2. Increase refcount (protects the socket while waiting)
+    // increase refcount (protects the socket while waiting)
     socket->refcount++;
 
-    // 3. Build the request and initialize it
+    // build the request and initialize it
     connection_request* req = (connection_request*)xmalloc(sizeof(connection_request));
     req->admitted = 0;
     req->peer = socket;
     req->connected_cv = COND_INIT;
     rlnode_init(&req->queue_node, req); // Store the request pointer in the node
 
-    // 4. Add request to the listener’s queue and signal listener
+    // add request to the listener’s queue and signal listener
     rlist_push_back(&listener->listener_s.queue, &req->queue_node);
     kernel_signal(&listener->listener_s.req_available);
 
-    // 5. Block for the specified amount of time (kernel_timedwait)
+    // block for the specified amount of time (kernel_timedwait)
     int wait_status = kernel_timedwait(&req->connected_cv, SCHED_PIPE, timeout);
     
-    // 6. Decrease refcount immediately upon waking
-    //socket->refcount--;
+    // decrease refcount immediately upon waking
+    socket->refcount--;
 	//fprintf(stderr, "refcount: %d\n", socket->refcount);
-    // 7. Check the wait result and the admitted flag
+	
+    // check the wait result and the admitted flag
     int result = -1; // Default to error
 
     if(wait_status == 0) result = -1; // Timeout error
     else if(wait_status == 1) {
 
-		socket->refcount--;
+		//socket->refcount--;
 		//fprintf(stderr, "refcount: %d\n", socket->refcount);
 
 		if(req->admitted == 1) result = 0; // Success
 		else result = -1;
-		
 	}
 	//fprintf(stderr, "req free\n");
 	rlist_remove(&req->queue_node);
     free(req);
-
 
     return result;
 }
@@ -182,7 +181,7 @@ int sys_ShutDown(Fid_t sock, shutdown_mode how)
 
 	switch(how) {
 		case SHUTDOWN_READ:
-			// Check if socket's reader pipe is still open
+			// check if socket's reader pipe is still open
 			if(socket->peer_s.read_pipe) {
 				pipe_reader_close(socket->peer_s.read_pipe);
 				socket->peer_s.read_pipe=NULL;
@@ -190,7 +189,7 @@ int sys_ShutDown(Fid_t sock, shutdown_mode how)
 			break;
 
 		case SHUTDOWN_WRITE:
-			// Check if socket's writing pipe is still open
+			// check if socket's writing pipe is still open
 			if(socket->peer_s.write_pipe) {
 				pipe_writer_close(socket->peer_s.write_pipe);
 				socket->peer_s.write_pipe=NULL;
@@ -198,7 +197,7 @@ int sys_ShutDown(Fid_t sock, shutdown_mode how)
 			break;
 
 		case SHUTDOWN_BOTH:
-			// Check if socket's both pipes are still open
+			// check if socket's both pipes are still open
 			if(socket->peer_s.read_pipe) {
 				pipe_reader_close(socket->peer_s.read_pipe);
 				socket->peer_s.read_pipe=NULL;
@@ -271,7 +270,6 @@ int socket_close(void* socket_cb_t)
 	}
 
 	//socket->refcount--;
-
 	//fprintf(stderr, "refcount: %d\n", socket->refcount);
 
 	if(socket->refcount==0) {

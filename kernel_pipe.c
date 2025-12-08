@@ -34,8 +34,7 @@ int pipe_write(void* pipecb_t, const char *buf, unsigned int n)
 	/*  
 		While buffer is full and if the reader is open.
 		Buffer is full when no position is available. The available positions are given by 
-		the equation available = w_position - r_position and because we have a circular buffer
-		we need to do the modulo of PIPE_BUFFER_SIZE
+		the available_space function
 	*/
 
 	while(available_space(pipe, 1) == 0 && pipe->reader) {

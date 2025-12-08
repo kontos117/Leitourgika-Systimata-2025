@@ -333,11 +333,79 @@ void sys_Exit(int exitval)
 
 }
 
+file_ops procinfo_ops = {
+  .Open  = NULL,
+  .Read  = procinfo_read,
+  .Write = NULL,
+  .Close = procinfo_close
+};
 
+int procinfo_read(void* process_info_cb, char* buf, unsigned int n) 
+{
 
+  procinfo_cb* procinfocb = (procinfo_cb*) process_info_cb;
+  // Check cursor
+  if(!procinfocb || procinfocb->cursor == MAX_PROC)
+    return -1;
+  
+  while(procinfocb->cursor < MAX_PROC) {
+    // check if process is free
+    if(PT[procinfocb->cursor].pstate != FREE)
+      break;
+    // point to the next position on the process table
+    procinfocb->cursor++;
+  }
+  if(procinfocb->cursor >= MAX_PROC)
+    return 0;
+
+  // Get system info 
+  procinfocb->info.pid = (Pid_t) procinfocb->cursor;
+  procinfocb->info.ppid = (Pid_t) get_pid(PT[procinfocb->cursor].parent);
+  // NOPROC (= -1) for parentless processes
+  procinfocb->info.argl = PT[procinfocb->cursor].argl;
+  procinfocb->info.thread_count = PT[procinfocb->cursor].thread_count;
+  procinfocb->info.main_task = PT[procinfocb->cursor].main_task;
+
+  // check if process is ZOMBIE
+  if(PT[procinfocb->cursor].pstate == ZOMBIE)
+    procinfocb->info.alive = 0;
+  else 
+    procinfocb->info.alive = 1;
+
+  if(procinfocb->cursor > 1) 
+    memcpy(procinfocb->info.args, PT[procinfocb->cursor].args, PROCINFO_MAX_ARGS_SIZE);
+
+  memcpy(buf, (char*)&procinfocb->info, n);
+
+  procinfocb->cursor++;
+
+  return sizeof(procinfocb); 
+}
+
+int procinfo_close(void* process_info_cb) 
+{
+  procinfo_cb* procinfocb = (procinfo_cb*) process_info_cb;
+  if(!procinfocb)
+    return -1;
+  procinfocb = NULL;
+  free(procinfocb);
+  return 0;
+}
 
 Fid_t sys_OpenInfo()
 {
-	return NOFILE;
-}
+  FCB* fcb;
+  Fid_t fid;
 
+  if(!FCB_reserve(1, &fid, &fcb))
+    return NOFILE;
+
+  // Initialise procinfo
+  procinfo_cb* procinfo = (procinfo_cb*) xmalloc(sizeof(procinfo_cb));
+  procinfo->cursor = 0;
+
+  fcb->streamobj = procinfo;
+  fcb->streamfunc = &procinfo_ops;
+
+	return fid;
+}
