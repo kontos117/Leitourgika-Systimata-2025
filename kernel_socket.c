@@ -114,7 +114,6 @@ Fid_t sys_Accept(Fid_t lsock)
 
     // signal the Connect side
     kernel_signal(&req->connected_cv);
-	//socket->refcount--;
 
     return peer2_fid; // Return the new socket ID for the server
 }
