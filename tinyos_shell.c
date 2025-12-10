@@ -7,7 +7,6 @@
 #include <assert.h>
 #include <ctype.h>
 #include <stdarg.h>
-#include <unistd.h>
 
 #include "tinyoslib.h"
 #include "symposium.h"

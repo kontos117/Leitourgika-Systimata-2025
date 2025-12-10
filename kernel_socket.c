@@ -67,6 +67,7 @@ Fid_t sys_Accept(Fid_t lsock)
         // Wait for a request
         kernel_wait(&socket->listener_s.req_available, SCHED_PIPE);
     }
+	socket->refcount--;
 	
 
     // check if the port is still valid (after waking up)
@@ -81,18 +82,23 @@ Fid_t sys_Accept(Fid_t lsock)
 
     // client's socket (peer1)
     socket_cb* peer1 = req->peer;
-    if(!peer1 || peer1->type != SOCKET_UNBOUND) return NOFILE; 
+    if(!peer1 || peer1->type != SOCKET_UNBOUND) return NOFILE;
+	
     
 
     // try to construct peer (the server's new socket)
 
-	Fid_t peer1_fid = sys_Socket(peer1->port);
+	Fid_t peer2_fid = sys_Socket(peer1->port);
+	if(peer2_fid == NOFILE) return NOFILE;
+    
 
-	FCB* peer2_fcb = get_fcb(peer1_fid);
-	if(peer1_fid==NOFILE) return NOFILE;
+	FCB* peer2_fcb = get_fcb(peer2_fid);
+	if(peer2_fid==NOFILE) return NOFILE;
+	
 
     socket_cb* peer2 = (socket_cb*) peer2_fcb->streamobj;
 	if(!peer2) return NOFILE;
+	
 
     // connect the 2 peers / initialise the connection
 
@@ -108,10 +114,9 @@ Fid_t sys_Accept(Fid_t lsock)
 
     // signal the Connect side
     kernel_signal(&req->connected_cv);
-	socket->refcount--;
+	//socket->refcount--;
 
-    
-    return peer1_fid; // Return the new socket ID for the server
+    return peer2_fid; // Return the new socket ID for the server
 }
 
 
@@ -145,7 +150,7 @@ int sys_Connect(Fid_t sock, port_t port, timeout_t timeout)
     kernel_signal(&listener->listener_s.req_available);
 
     // block for the specified amount of time (kernel_timedwait)
-    int wait_status = kernel_timedwait(&req->connected_cv, SCHED_PIPE, timeout);
+    int wait_status = kernel_timedwait(&req->connected_cv, SCHED_PIPE, 100*timeout);
     
     // decrease refcount immediately upon waking
     socket->refcount--;
@@ -157,16 +162,12 @@ int sys_Connect(Fid_t sock, port_t port, timeout_t timeout)
     if(wait_status == 0) result = -1; // Timeout error
     else if(wait_status == 1) {
 
-		//socket->refcount--;
-		//fprintf(stderr, "refcount: %d\n", socket->refcount);
-
 		if(req->admitted == 1) result = 0; // Success
 		else result = -1;
 	}
 	//fprintf(stderr, "req free\n");
 	rlist_remove(&req->queue_node);
     free(req);
-
     return result;
 }
 
@@ -268,8 +269,6 @@ int socket_close(void* socket_cb_t)
 		    socket->peer_s.write_pipe=NULL;
 		}
 	}
-
-	//socket->refcount--;
 	//fprintf(stderr, "refcount: %d\n", socket->refcount);
 
 	if(socket->refcount==0) {
