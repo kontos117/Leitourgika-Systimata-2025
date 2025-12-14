@@ -67,7 +67,6 @@ Fid_t sys_Accept(Fid_t lsock)
         // Wait for a request
         kernel_wait(&socket->listener_s.req_available, SCHED_PIPE);
     }
-	socket->refcount--;
 	
 
     // check if the port is still valid (after waking up)
@@ -80,12 +79,14 @@ Fid_t sys_Accept(Fid_t lsock)
 
     req->admitted = 1;
 
+	// decrease refcount
+	socket->refcount--;
+
     // client's socket (peer1)
     socket_cb* peer1 = req->peer;
     if(!peer1 || peer1->type != SOCKET_UNBOUND) return NOFILE;
 	
     
-
     // try to construct peer (the server's new socket)
 
 	Fid_t peer2_fid = sys_Socket(peer1->port);
