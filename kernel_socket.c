@@ -298,6 +298,7 @@ void initialise_SocketPipe(pipe_cb* pipe, FCB* reader_fcb, FCB* writer_fcb)
     pipe->r_position = 0;
     pipe->has_space = COND_INIT; 
     pipe->has_data = COND_INIT;
+	pipe->size = 0;
     
 }
 

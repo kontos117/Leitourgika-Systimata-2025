@@ -385,9 +385,7 @@ int procinfo_read(void* process_info_cb, char* buf, unsigned int n)
 int procinfo_close(void* process_info_cb) 
 {
   procinfo_cb* procinfocb = (procinfo_cb*) process_info_cb;
-  if(!procinfocb)
-    return -1;
-  procinfocb = NULL;
+  if(!procinfocb) return -1;
   free(procinfocb);
   return 0;
 }
